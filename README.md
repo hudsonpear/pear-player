@@ -24,7 +24,7 @@ small interface. </p>
 - Single instance: opening a second file hands it to the running window
 - Taskbar progress, recent files, fullscreen
 - Interface translations — English, Portuguese (Brazil), Spanish, French, German
-- 
+
 ## Download
 
 Available for Windows
@@ -39,7 +39,6 @@ Available for Windows
 ## Requirements
 
 | | |
-|---|---|
 | OS | Windows 10 or later, 64-bit |
 | Qt | 6.x with the MinGW 64-bit toolchain (tested on Qt 6.10.1 / MinGW 13.1) |
 | CMake | 3.21 or later, plus Ninja |
