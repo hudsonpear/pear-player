@@ -1,0 +1,18 @@
+<!DOCTYPE RCC>
+<RCC version="1.0">
+    <qresource prefix="/app">
+        <!-- Pre-scaled sizes rather than one large source image: Qt picks the
+             exact match for the title bar, task bar and Alt-Tab switcher
+             instead of downscaling on the fly. PNG decoding is built into
+             QtGui, so no image-format plugin has to be deployed. -->
+        <file>resources/icons/pearicon-16.png</file>
+        <file>resources/icons/pearicon-20.png</file>
+        <file>resources/icons/pearicon-24.png</file>
+        <file>resources/icons/pearicon-32.png</file>
+        <file>resources/icons/pearicon-40.png</file>
+        <file>resources/icons/pearicon-48.png</file>
+        <file>resources/icons/pearicon-64.png</file>
+        <file>resources/icons/pearicon-128.png</file>
+        <file>resources/icons/pearicon-256.png</file>
+    </qresource>
+</RCC>

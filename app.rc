@@ -1,0 +1,47 @@
+#include <windows.h>
+
+// Explorer shows the lowest-numbered ICON resource for the executable itself,
+// so the plain pear must stay at 1. Numeric IDs rather than names: they fix
+// the ordering, and the installer addresses these by zero-based index
+// ("PearPlayer.exe,0" and so on) when registering file types.
+//
+//   index 0 -> the app icon        index 2 -> audio files
+//   index 1 -> video files         index 3 -> images
+//
+// Generated from pearicon.png by tools/make-icons.ps1.
+1 ICON "resources/pearicon.ico"
+2 ICON "resources/pearicon-video.ico"
+3 ICON "resources/pearicon-audio.ico"
+4 ICON "resources/pearicon-image.ico"
+
+// Version lives here and in main.cpp's setApplicationVersion(); keep the two
+// in step. The numeric fields below must be four comma-separated parts (the
+// resource format requires it), while the display strings match the "1.0.0"
+// the About box shows.
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     1,0,0,0
+PRODUCTVERSION  1,0,0,0
+FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
+FILEFLAGS       0
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_APP
+FILESUBTYPE     VFT2_UNKNOWN
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904B0"
+        BEGIN
+            VALUE "CompanyName",      "PearPlayer"
+            VALUE "FileDescription",  "Pear Player"
+            VALUE "FileVersion",      "1.0.0"
+            VALUE "InternalName",     "PearPlayer"
+            VALUE "OriginalFilename", "PearPlayer.exe"
+            VALUE "ProductName",      "Pear Player"
+            VALUE "ProductVersion",   "1.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
