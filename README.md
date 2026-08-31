@@ -24,6 +24,17 @@ small interface. </p>
 - Single instance: opening a second file hands it to the running window
 - Taskbar progress, recent files, fullscreen
 - Interface translations — English, Portuguese (Brazil), Spanish, French, German
+- 
+## Download
+
+Available for Windows
+
+[Download Latest Release](https://github.com/hudsonpear/pear-player/releases)
+
+## Screenshots
+
+![screenshot1](https://i.imgur.com/HFCYfXF.png)
+![screenshot2](https://i.imgur.com/CSZAaCN.png)
 
 ## Requirements
 
