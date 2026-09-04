@@ -50,6 +50,12 @@ inline const QString kVideoGamma = QStringLiteral("video/gamma");
 inline const QString kShowChapterMarkers = QStringLiteral("playback/showChapterMarkers");
 constexpr bool kDefaultShowChapterMarkers = true;
 
+/// When set, an audio file's cover art is shown on the left half of the window
+/// with its title, artist and album beside it, instead of the art alone filling
+/// the whole surface.
+inline const QString kShowAudioTrackInfo = QStringLiteral("playback/showAudioTrackInfo");
+constexpr bool kDefaultShowAudioTrackInfo = true;
+
 /// When set, finishing a file starts the next playlist entry.
 inline const QString kAutoAdvance = QStringLiteral("playback/autoAdvance");
 constexpr bool kDefaultAutoAdvance = true;

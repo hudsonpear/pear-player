@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
     QCoreApplication::setApplicationName(QStringLiteral("PearPlayer"));
     // Single source for the version the About box shows; keep in step with
     // the FILEVERSION/PRODUCTVERSION block in app.rc.
-    QCoreApplication::setApplicationVersion(QStringLiteral("1.0.0"));
+    QCoreApplication::setApplicationVersion(QStringLiteral("1.0.1"));
 
     QApplication app(argc, argv);
 

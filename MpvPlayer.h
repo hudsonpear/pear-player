@@ -164,6 +164,18 @@ public:
     /// ignores it and assumes square pixels, anything else forces that ratio.
     void setAspectOverride(double ratio);
 
+    /// Keeps this fraction of the window's width free along the right edge and
+    /// fits the picture into what is left. Used to pen an audio file's cover
+    /// art into the left half so its tags can be shown beside it. 0 restores
+    /// the normal full-window picture.
+    void setVideoRightMargin(double ratio);
+
+    /// True when the video track mpv is showing is a still cover image
+    /// attached to an audio file rather than real video. Such files report a
+    /// video codec like any other, so hasVideoChanged() alone cannot tell them
+    /// apart from a music video.
+    [[nodiscard]] bool isAlbumArt() const;
+
     /// Decoded video size in pixels, 0 when unknown (audio-only, or nothing
     /// loaded). Used to size the window to a multiple of the video.
     [[nodiscard]] int videoWidth() const;

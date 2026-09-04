@@ -93,6 +93,7 @@ private:
     QCheckBox *rememberPositionCheck_ = nullptr;
     QCheckBox *autoAdvanceCheck_ = nullptr;
     QCheckBox *chapterMarkersCheck_ = nullptr;
+    QCheckBox *audioTrackInfoCheck_ = nullptr;
     QCheckBox *fitWindowCheck_ = nullptr;
     QCheckBox *openMaximizedCheck_ = nullptr;
 

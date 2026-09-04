@@ -9,18 +9,41 @@
 //   index 1 -> video files         index 3 -> images
 //
 // Generated from pearicon.png by tools/make-icons.ps1.
+// Icon resources, in ID order. Windows numbers them from 0 in that same order
+// when a DefaultIcon registry value says "PearPlayer.exe,N", so the installer's
+// IconIndexFor() indexes are one less than the IDs below -- keep the two in
+// step when adding a format.
 1 ICON "resources/pearicon.ico"
 2 ICON "resources/pearicon-video.ico"
 3 ICON "resources/pearicon-audio.ico"
 4 ICON "resources/pearicon-image.ico"
 
+// Per-format colours. The badge still says video or audio; the colour says
+// which format, so a folder of mixed media is readable at a glance.
+5  ICON "resources/pearicon-video-darkgreen.ico"
+6  ICON "resources/pearicon-video-blue.ico"
+7  ICON "resources/pearicon-video-red.ico"
+8  ICON "resources/pearicon-video-pink.ico"
+9  ICON "resources/pearicon-video-purple.ico"
+10 ICON "resources/pearicon-video-teal.ico"
+11 ICON "resources/pearicon-audio-lightblue.ico"
+12 ICON "resources/pearicon-audio-lightgreen.ico"
+13 ICON "resources/pearicon-audio-lightpurple.ico"
+14 ICON "resources/pearicon-audio-lightyellow.ico"
+15 ICON "resources/pearicon-audio-lightred.ico"
+16 ICON "resources/pearicon-audio-lightpink.ico"
+17 ICON "resources/pearicon-audio-lightorange.ico"
+18 ICON "resources/pearicon-playlist.ico"
+19 ICON "resources/pearicon-video-lightgreen.ico"
+20 ICON "resources/pearicon-video-lightblue.ico"
+
 // Version lives here and in main.cpp's setApplicationVersion(); keep the two
 // in step. The numeric fields below must be four comma-separated parts (the
-// resource format requires it), while the display strings match the "1.0.0"
+// resource format requires it), while the display strings match the "1.0.1"
 // the About box shows.
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION     1,0,0,0
-PRODUCTVERSION  1,0,0,0
+FILEVERSION     1,0,1,0
+PRODUCTVERSION  1,0,1,0
 FILEFLAGSMASK   VS_FFI_FILEFLAGSMASK
 FILEFLAGS       0
 FILEOS          VOS_NT_WINDOWS32
@@ -33,11 +56,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName",      "PearPlayer"
             VALUE "FileDescription",  "Pear Player"
-            VALUE "FileVersion",      "1.0.0"
+            VALUE "FileVersion",      "1.0.1"
             VALUE "InternalName",     "PearPlayer"
             VALUE "OriginalFilename", "PearPlayer.exe"
             VALUE "ProductName",      "Pear Player"
-            VALUE "ProductVersion",   "1.0.0"
+            VALUE "ProductVersion",   "1.0.1"
         END
     END
     BLOCK "VarFileInfo"

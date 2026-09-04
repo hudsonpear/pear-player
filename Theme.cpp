@@ -118,6 +118,7 @@ const QVector<Preset> &presets()
         {QCoreApplication::translate("Theme", "Amber"), QColor(240, 172, 58)},
         {QCoreApplication::translate("Theme", "Teal"), QColor(56, 199, 186)},
         {QCoreApplication::translate("Theme", "Slate"), QColor(150, 162, 178)},
+        {QCoreApplication::translate("Theme", "Graphite"), QColor(0x25, 0x25, 0x26)},
     };
     return list;
 }

@@ -996,6 +996,20 @@ void MpvPlayer::setAspectOverride(double ratio)
     setSubProperty(mpv_, "video-aspect-override", ratio);
 }
 
+void MpvPlayer::setVideoRightMargin(double ratio)
+{
+    // Capped well short of 1: mpv has nothing left to draw the picture in once
+    // the margins meet, and refuses the property rather than clipping.
+    setSubProperty(mpv_, "video-margin-ratio-right", std::clamp(ratio, 0.0, 0.9));
+}
+
+bool MpvPlayer::isAlbumArt() const
+{
+    // mpv flags the track itself, which covers embedded cover art and a
+    // folder.jpg picked up beside the file alike.
+    return propertyString(mpv_, "current-tracks/video/albumart") == QLatin1String("yes");
+}
+
 int MpvPlayer::videoWidth() const
 {
     if (!mpv_) {

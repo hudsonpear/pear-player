@@ -167,15 +167,24 @@ const QStringList kVideoSuffixes = {
     QStringLiteral("wmv"), QStringLiteral("m4v"), QStringLiteral("mpg"),
     QStringLiteral("mpeg"), QStringLiteral("m2v"), QStringLiteral("ts"),
     QStringLiteral("m2ts"), QStringLiteral("mts"), QStringLiteral("vob"),
-    QStringLiteral("3gp"), QStringLiteral("3g2"), QStringLiteral("ogv"),
+    QStringLiteral("3gp"), QStringLiteral("3gpp"), QStringLiteral("3g2"),
+    QStringLiteral("ogv"),
 };
 
 const QStringList kAudioSuffixes = {
     QStringLiteral("mp3"), QStringLiteral("wav"), QStringLiteral("flac"),
     QStringLiteral("aac"), QStringLiteral("ogg"), QStringLiteral("m4a"),
     QStringLiteral("opus"), QStringLiteral("wma"), QStringLiteral("mka"),
-    QStringLiteral("aiff"), QStringLiteral("ac3"), QStringLiteral("dts"),
-    QStringLiteral("amr"),
+    QStringLiteral("aiff"), QStringLiteral("aif"), QStringLiteral("ac3"), QStringLiteral("dts"),
+    QStringLiteral("thd"), QStringLiteral("amr"), QStringLiteral("mid"),
+    QStringLiteral("fla"), QStringLiteral("oga"), QStringLiteral("au"),
+};
+
+// Deliberately not part of kPlayableSuffixes below: a playlist is not media,
+// it names media. Folder scans and playlist rows have to stay clear of these,
+// or a queue ends up holding an entry that cannot be played.
+const QStringList kPlaylistSuffixes = {
+    QStringLiteral("m3u"), QStringLiteral("m3u8"),
 };
 
 const QStringList kPlayableSuffixes = kVideoSuffixes + kAudioSuffixes + kImageSuffixes;
@@ -203,6 +212,64 @@ QStringList playableNameFilters()
 bool isPlayableFile(const QFileInfo &info)
 {
     return kPlayableSuffixes.contains(info.suffix(), Qt::CaseInsensitive);
+}
+
+bool isPlaylistFile(const QFileInfo &info)
+{
+    return kPlaylistSuffixes.contains(info.suffix(), Qt::CaseInsensitive);
+}
+
+/// The files an .m3u/.m3u8 names, as absolute paths. Sets ok to false when the
+/// playlist itself could not be read, which is different from a playlist that
+/// was read and turned out to be empty.
+///
+/// Deliberately not strict about the format: an .m3u8 is a plain .m3u that
+/// happens to be UTF-8, and QTextStream reads UTF-8 either way.
+QStringList readPlaylistEntries(const QString &path, bool *ok = nullptr)
+{
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        if (ok) {
+            *ok = false;
+        }
+        return {};
+    }
+    if (ok) {
+        *ok = true;
+    }
+
+    const QDir base = QFileInfo(path).absoluteDir();
+    QStringList entries;
+    QTextStream in(&file);
+    while (!in.atEnd()) {
+        const QString line = in.readLine().trimmed();
+        if (line.isEmpty() || line.startsWith(QLatin1Char('#'))) {
+            continue; // blank lines and #EXTM3U / #EXTINF directives
+        }
+        // A remote entry is kept as it stands -- mpv opens a URL as readily as
+        // a file. Everything else may be relative to the playlist's own folder.
+        if (!QUrl(line).scheme().isEmpty() && !QDir::isAbsolutePath(line)) {
+            entries << line;
+        } else {
+            entries << (QDir::isAbsolutePath(line) ? line : base.filePath(line));
+        }
+    }
+    return entries;
+}
+
+/// paths with every playlist file replaced by the entries it names, so the
+/// rest of the app only ever deals in things that can actually be played.
+QStringList expandPlaylists(const QStringList &paths)
+{
+    QStringList expanded;
+    for (const QString &path : paths) {
+        if (isPlaylistFile(QFileInfo(path))) {
+            expanded += readPlaylistEntries(path);
+        } else {
+            expanded << path;
+        }
+    }
+    return expanded;
 }
 
 // Hand-drawn vector icons instead of QStyle::standardIcon() (dark/black
@@ -668,8 +735,7 @@ void MainWindow::createMenus()
     createAudioMenu();
 
     settingsAction_ = menuBar_->addAction(tr("&Settings"), this, &MainWindow::openSettingsDialog);
-    QMenu *helpMenu = menuBar_->addMenu(tr("&Help"));
-    aboutAction_ = helpMenu->addAction(tr("&About"), this, &MainWindow::openAboutDialog);
+    aboutAction_ = menuBar_->addAction(tr("&About"), this, &MainWindow::openAboutDialog);
 }
 
 void MainWindow::createControlsBar()
@@ -919,6 +985,8 @@ void MainWindow::createConnections()
     connect(player_.get(), &MpvPlayer::hasVideoChanged, this, [this](bool hasVideo) {
         hasVideo_ = hasVideo;
         updateSleepInhibit();
+        // Whether this is a music file is exactly what just changed.
+        updateAudioTrackInfo();
     });
 }
 
@@ -965,6 +1033,8 @@ void MainWindow::applyPreferences()
         player_->showOsdMessage(alwaysOnTop ? tr("Always on top: on")
                                              : tr("Always on top: off"), 1800);
     }
+    showAudioTrackInfo_ = settings.value(SettingsKeys::kShowAudioTrackInfo,
+                                          SettingsKeys::kDefaultShowAudioTrackInfo).toBool();
     const bool clickToPause = settings.value(SettingsKeys::kClickToPause, SettingsKeys::kDefaultClickToPause).toBool();
     const QString doubleClickAction = settings.value(SettingsKeys::kDoubleClickAction, QStringLiteral("fullscreen")).toString();
 
@@ -981,6 +1051,7 @@ void MainWindow::applyPreferences()
     player_->setEqualizerGains(Equalizer::loadGains());
     // Picks up the setting being toggled while a file is already playing.
     refreshChapterMarkers();
+    updateAudioTrackInfo();
 
     // Video state belongs to whatever is playing, so it is only seeded here
     // when nothing is: this runs again every time the Settings dialog is
@@ -1039,17 +1110,27 @@ void MainWindow::openFile()
     // cannot fall behind what the player actually accepts.
     const QStringList paths = QFileDialog::getOpenFileNames(
         this, tr("Open Media"), QString(),
-        tr("Media Files (%1);;Video (%2);;Audio (%3);;Images (%4);;All Files (*.*)")
-            .arg(playableNameFilters().join(QLatin1Char(' ')),
+        tr("Media Files (%1);;Video (%2);;Audio (%3);;Images (%4);;Playlists (%5);;All Files (*.*)")
+            .arg((playableNameFilters() + wildcardsFor(kPlaylistSuffixes).split(QLatin1Char(' ')))
+                      .join(QLatin1Char(' ')),
                   wildcardsFor(kVideoSuffixes),
                   wildcardsFor(kAudioSuffixes),
-                  wildcardsFor(kImageSuffixes)));
+                  wildcardsFor(kImageSuffixes),
+                  wildcardsFor(kPlaylistSuffixes)));
     openFiles(paths);
 }
 
-void MainWindow::openFiles(const QStringList &paths)
+void MainWindow::openFiles(const QStringList &rawPaths)
 {
+    // An .m3u/.m3u8 stands for the files it names: the first plays and the rest
+    // queue behind it, which is the only useful reading of "open this playlist".
+    const QStringList paths = expandPlaylists(rawPaths);
     if (paths.isEmpty()) {
+        if (!rawPaths.isEmpty()) {
+            // Only reachable for a playlist that named nothing this player
+            // could use; a plain file never vanishes here.
+            player_->showOsdMessage(tr("Playlist is empty"), 2000);
+        }
         return;
     }
 
@@ -1092,8 +1173,9 @@ void MainWindow::openFiles(const QStringList &paths)
     externalOpenTimer_.restart();
 }
 
-void MainWindow::queueFiles(const QStringList &paths)
+void MainWindow::queueFiles(const QStringList &rawPaths)
 {
+    const QStringList paths = expandPlaylists(rawPaths);
     int added = 0;
     for (const QString &path : paths) {
         const QFileInfo info(path);
@@ -1297,6 +1379,12 @@ void MainWindow::onPlaylistFilesDropped(const QStringList &paths)
             const QFileInfoList entries = directory.entryInfoList(playableNameFilters(), QDir::Files, QDir::Name | QDir::IgnoreCase);
             for (const QFileInfo &entry : entries) {
                 addPlaylistItem(entry);
+                ++added;
+            }
+        } else if (info.isFile() && isPlaylistFile(info)) {
+            // A dropped playlist contributes its entries, not itself.
+            for (const QString &entry : readPlaylistEntries(path)) {
+                addPlaylistItem(QFileInfo(entry));
                 ++added;
             }
         } else if (info.isFile() && isPlayableFile(info)) {
@@ -1692,8 +1780,10 @@ void MainWindow::playlistAddFiles()
 {
     const QStringList paths = QFileDialog::getOpenFileNames(
         this, tr("Add to Playlist"), QString(),
-        tr("Media Files (*.mp4 *.mkv *.avi *.mov *.webm *.flv *.wmv *.m4v "
-            "*.mp3 *.flac *.wav *.m4a *.ogg *.opus *.aac);;All Files (*.*)"));
+        // Same shared suffix lists as Open Media: this filter was spelled out
+        // by hand and had already fallen behind it by half a dozen formats.
+        tr("Media Files (%1);;All Files (*.*)")
+            .arg(playableNameFilters().join(QLatin1Char(' '))));
     for (const QString &path : paths) {
         addPlaylistItem(QFileInfo(path));
     }
@@ -1839,25 +1929,19 @@ void MainWindow::playlistLoad()
         return;
     }
 
-    QFile file(path);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    // The same parser that expands a playlist opened as a file, so the two
+    // routes cannot drift apart.
+    bool readable = false;
+    const QStringList entries = readPlaylistEntries(path, &readable);
+    if (!readable) {
         QMessageBox::warning(this, tr("Load Playlist"),
                               tr("Could not read %1").arg(QDir::toNativeSeparators(path)));
         return;
     }
 
     playlistWidget_->clear();
-    const QDir base = QFileInfo(path).absoluteDir();
-
-    QTextStream in(&file);
-    while (!in.atEnd()) {
-        const QString line = in.readLine().trimmed();
-        if (line.isEmpty() || line.startsWith(QLatin1Char('#'))) {
-            continue; // blank lines and #EXTM3U / #EXTINF directives
-        }
-        // Entries may be relative to the playlist's own folder.
-        const QFileInfo info(QDir::isAbsolutePath(line) ? line : base.filePath(line));
-        addPlaylistItem(info);
+    for (const QString &entry : entries) {
+        addPlaylistItem(QFileInfo(entry));
     }
 
     playlistDock_->setVisible(true);
@@ -2273,6 +2357,12 @@ void MainWindow::createVideoMenu()
     videoMenu_->addAction(cycleAction);
 
     videoMenu_->addSeparator();
+    // The key hint is in the label rather than a real shortcut, the same way
+    // Fullscreen advertises F11: S is handled in VideoWidget::keyPressEvent, and
+    // a QAction shortcut here would take the key away from it -- or go ambiguous
+    // and fire neither. The context menu shows videoMenu_ itself, so this entry
+    // appears there too.
+    videoMenu_->addAction(tr("Take &Screenshot\tS"), this, &MainWindow::takeScreenshot);
     videoMenu_->addAction(tr("Media Information"), this, &MainWindow::openMediaInfoDialog);
 }
 
@@ -3049,6 +3139,74 @@ void MainWindow::onFileLoaded(const QString &filename)
     if (savedDelay.isValid()) {
         player_->setSubtitleDelay(savedDelay.toDouble());
     }
+
+    // Tags are only readable once the file is open, and mpv clears the margin
+    // with every new file, so both ends are settled here.
+    updateAudioTrackInfo();
+}
+
+void MainWindow::updateAudioTrackInfo()
+{
+    // Music, as opposed to video: either no video track at all, or the only one
+    // is the still mpv shows for cover art.
+    const bool audioFile = mediaLoaded_ && (!hasVideo_ || player_->isAlbumArt());
+    if (!audioFile || !showAudioTrackInfo_) {
+        videoWidget_->setAudioInfo(QString(), {});
+        player_->setVideoRightMargin(0.0);
+        return;
+    }
+
+    // Tag names vary with the container -- ID3 writes "title", Matroska
+    // "TITLE", Vorbis comments either -- so they are matched without case.
+    const QMap<QString, QString> tags = player_->metadata();
+    const auto tag = [&tags](std::initializer_list<const char *> names) {
+        for (const char *name : names) {
+            for (auto it = tags.constBegin(); it != tags.constEnd(); ++it) {
+                if (it.key().compare(QLatin1String(name), Qt::CaseInsensitive) == 0
+                    && !it.value().trimmed().isEmpty()) {
+                    return it.value().trimmed();
+                }
+            }
+        }
+        return QString();
+    };
+
+    // The file name is the fallback title, which is what the title bar is
+    // already showing for an untagged file.
+    QString title = tag({"title"});
+    if (title.isEmpty()) {
+        title = mediaTitle_;
+    }
+
+    QStringList details;
+    const QString artist = tag({"artist", "album_artist", "performer"});
+    if (!artist.isEmpty()) {
+        details << artist;
+    }
+    QString album = tag({"album"});
+    if (!album.isEmpty()) {
+        // The year belongs to the album line rather than one of its own; mpv
+        // hands back either a bare year or a full date, and only the year is
+        // worth the room.
+        const QString year = tag({"date", "year"}).left(4);
+        if (year.size() == 4) {
+            album += QStringLiteral(" (%1)").arg(year);
+        }
+        details << album;
+    }
+    const QString track = tag({"track"});
+    if (!track.isEmpty()) {
+        details << tr("Track %1").arg(track);
+    }
+    const QString genre = tag({"genre"});
+    if (!genre.isEmpty()) {
+        details << genre;
+    }
+
+    videoWidget_->setAudioInfo(title, details);
+    // Half the window kept clear for the panel; the art fits itself into the
+    // rest. Harmless for a file with no art at all, where mpv draws nothing.
+    player_->setVideoRightMargin(0.5);
 }
 
 void MainWindow::onVideoDisplaySizeChanged(const QSize &size)

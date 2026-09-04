@@ -1,12 +1,12 @@
-<p align="center">
-  <img src="https://i.imgur.com/YMRRSJK.png" height="130">
-</p>
+<img src="pearicon.png" width="96" align="left" alt="Pear Player icon">
 
-# <p align="center">Pear Player</p>
+# Pear Player
 
-<p align="center"> A Windows video player built on Qt 6 Widgets and libmpv. Frameless custom
+A Windows video player built on Qt 6 Widgets and libmpv. Frameless custom
 title bar, per-file playback memory, and mpv's full decoding stack behind a
-small interface. </p>
+small interface.
+
+<br clear="left">
 
 ## Features
 
@@ -25,26 +25,14 @@ small interface. </p>
 - Taskbar progress, recent files, fullscreen
 - Interface translations — English, Portuguese (Brazil), Spanish, French, German
 
-## Download
-
-Available for Windows
-
-[Download Latest Release](https://github.com/hudsonpear/pear-player/releases)
-
-## Screenshots
-
-![screenshot1](https://i.imgur.com/HFCYfXF.png)
-![screenshot2](https://i.imgur.com/CSZAaCN.png)
-
 ## Requirements
 
 | | |
-|--|--|
+|---|---|
 | OS | Windows 10 or later, 64-bit |
 | Qt | 6.x with the MinGW 64-bit toolchain (tested on Qt 6.10.1 / MinGW 13.1) |
 | CMake | 3.21 or later, plus Ninja |
 | libmpv | `mpv-dev` package — **not included in this repository**, see below |
-
 
 ## libmpv-2.dll is not in this repository
 
@@ -150,7 +138,5 @@ installer/             Inno Setup script (staging/ is generated)
 
 ## Credits
 
-Playback is [mpv](https://mpv.io/)'s; the interface is Qt 6 Widgets. 
-
-
-Pear Player 1.0.0 — Hudson Pear, 2026.
+Playback is [mpv](https://mpv.io/)'s; the interface is Qt 6 Widgets. Pear
+Player 1.0.1 — Hudson Pear, 2026.

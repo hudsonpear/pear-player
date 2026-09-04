@@ -37,11 +37,18 @@ void IconButton::init()
     setFlat(true);
     setCursor(Qt::PointingHandCursor);
     hoverColor_ = kHoverColor;
+    cornerRadius_ = kCornerRadius;
 }
 
 void IconButton::setHoverColor(const QColor &color)
 {
     hoverColor_ = color;
+    update();
+}
+
+void IconButton::setCornerRadius(int radius)
+{
+    cornerRadius_ = radius;
     update();
 }
 
@@ -56,16 +63,23 @@ void IconButton::paintEvent(QPaintEvent * /*event*/)
 
     if (isChecked() || isDown() || underMouse()) {
         painter.setPen(Qt::NoPen);
+        // Square corners fill the widget exactly; drawRoundedRect() on a
+        // QRectF would spill a hairline past the right and bottom edges.
+        const auto fillHighlight = [this, &painter](const QColor &color) {
+            painter.setBrush(color);
+            if (cornerRadius_ > 0) {
+                painter.drawRoundedRect(rect(), cornerRadius_, cornerRadius_);
+            } else {
+                painter.drawRect(rect());
+            }
+        };
         if (isChecked()) {
-            painter.setBrush(checkedColor());
-            painter.drawRoundedRect(rect(), kCornerRadius, kCornerRadius);
+            fillHighlight(checkedColor());
         }
         if (isDown()) {
-            painter.setBrush(kPressedColor);
-            painter.drawRoundedRect(rect(), kCornerRadius, kCornerRadius);
+            fillHighlight(kPressedColor);
         } else if (underMouse()) {
-            painter.setBrush(hoverColor_);
-            painter.drawRoundedRect(rect(), kCornerRadius, kCornerRadius);
+            fillHighlight(hoverColor_);
         }
     }
 

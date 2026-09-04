@@ -57,7 +57,10 @@ public:
     /// Plays the first path and queues the rest, showing the playlist when
     /// there is more than one. Used by the Open dialog, drag and drop, the
     /// command line and a second launch.
-    void openFiles(const QStringList &paths);
+    ///
+    /// An .m3u/.m3u8 among the paths is replaced by the files it names, so
+    /// opening a playlist plays its first entry and queues the others.
+    void openFiles(const QStringList &rawPaths);
 
     /// Rebuilds the menu bar and refreshes the rest of the persistent UI in
     /// the current language, for use after Translation::applyLanguage().
@@ -231,7 +234,8 @@ private:
     void addPlaylistItem(const QFileInfo &info);
 
     /// Appends paths to the playlist without disturbing what is playing.
-    void queueFiles(const QStringList &paths);
+    /// Playlist files are expanded the same way openFiles() expands them.
+    void queueFiles(const QStringList &rawPaths);
     void updateTaskbarProgress();
     void stopPlayback();
     void populateAudioMenu(QMenu *menu);
@@ -476,6 +480,15 @@ private:
     /// something is actually playing.
     void updateSleepInhibit();
     bool hasVideo_ = false;
+
+    /// Shows or clears the track details beside an audio file's cover art, and
+    /// pens the art into the left half of the window while they are up. Called
+    /// whenever the file, its video track or the setting changes.
+    void updateAudioTrackInfo();
+    /// "Show track details beside the cover art" from Settings. Seeded from
+    /// SettingsKeys::kDefaultShowAudioTrackInfo in applyPreferences(), which
+    /// runs before anything can be played.
+    bool showAudioTrackInfo_ = true;
     /// The EXECUTION_STATE last handed to SetThreadExecutionState(), so it is
     /// only called when the answer changes. Plain integer to keep windows.h
     /// out of this header.

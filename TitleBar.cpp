@@ -20,9 +20,15 @@ namespace {
 
 constexpr int kBarHeight = 34;
 constexpr int kLogoSize = 20;
-constexpr QSize kButtonSize(40, 26);
-constexpr QSize kGlyphSize(16, 16);
+constexpr QSize kMenuButtonSize(40, 26);
+// Full bar height and flush with the right edge, so the close button takes the
+// whole top-right corner the way the native caption's did. 46 wide is the
+// width Windows itself uses for caption buttons.
+constexpr QSize kCaptionButtonSize(46, kBarHeight);
 constexpr int kIconCanvas = 24;
+// Drawn at its natural canvas size, so the glyphs are as large as the artwork
+// allows and never resampled on the way to the screen.
+constexpr QSize kGlyphSize(kIconCanvas, kIconCanvas);
 
 // Windows' own close-button red, so the one destructive button in the row is
 // the one that reads as destructive.
@@ -87,7 +93,11 @@ IconButton *makeCaptionButton(const QIcon &icon, const char *tooltip)
 {
     auto *button = new IconButton(icon, QString());
     button->setIconSize(kGlyphSize);
-    button->setFixedSize(kButtonSize);
+    button->setFixedSize(kCaptionButtonSize);
+    button->setCornerRadius(0);
+    // Plain arrow, not IconButton's pointing hand: the native caption buttons
+    // these stand in for never changed the cursor.
+    button->setCursor(Qt::ArrowCursor);
     button->setFocusPolicy(Qt::NoFocus);
     setTranslatableToolTip(button, tooltip);
     return button;
@@ -119,7 +129,8 @@ TitleBar::TitleBar(QMainWindow *window, QMenuBar *menuBar)
         QIcon(QStringLiteral(":/app/resources/icons/pearicon-%1.png").arg(kLogoSize)),
         QStringLiteral("Pear Player"), this);
     menuButton_->setIconSize(QSize(kLogoSize, kLogoSize));
-    menuButton_->setFixedHeight(kButtonSize.height());
+    menuButton_->setFixedHeight(kMenuButtonSize.height());
+    menuButton_->setCursor(Qt::ArrowCursor);
     menuButton_->setFocusPolicy(Qt::NoFocus);
     // Only so it can be shown held down while its popup is open.
     menuButton_->setCheckable(true);

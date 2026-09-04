@@ -21,6 +21,10 @@ public:
     /// bar's close button, the one button whose hover should warn.
     void setHoverColor(const QColor &color);
 
+    /// Rounding of the hover/press highlight. 0 gives square corners, used by
+    /// the caption buttons so their highlights meet the window edge cleanly.
+    void setCornerRadius(int radius);
+
 protected:
     void paintEvent(QPaintEvent *event) override;
 
@@ -28,4 +32,5 @@ private:
     void init();
 
     QColor hoverColor_;
+    int cornerRadius_ = 0;
 };

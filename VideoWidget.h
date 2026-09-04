@@ -2,6 +2,8 @@
 
 #include <QOpenGLWidget>
 #include <QOpenGLFunctions>
+#include <QString>
+#include <QStringList>
 
 class MpvPlayer;
 class QLabel;
@@ -41,6 +43,12 @@ public:
     /// Paints black instead of the video. Used at the end of a file, where
     /// mpv's keep-open would otherwise leave the last frame on screen.
     void setBlankScreen(bool blank);
+
+    /// Shows an audio file's tags in the right half of the surface, beside the
+    /// cover art MainWindow has penned into the left half (see
+    /// MpvPlayer::setVideoRightMargin). An empty title and no details hides the
+    /// panel again and gives the whole surface back.
+    void setAudioInfo(const QString &title, const QStringList &details);
 
     /// Frees the player's mpv render context while this widget's GL context
     /// is still current. Must be called by the owner (MainWindow) before
@@ -85,8 +93,16 @@ protected:
     void contextMenuEvent(QContextMenuEvent *event) override;
 
 private:
+    /// Places the music note and the track-details panel, and scales their
+    /// text to the surface. Called on every resize and whenever the details
+    /// change, since both depend on how much room there is.
+    void layoutOverlays();
+
     MpvPlayer *player_ = nullptr;
     QLabel *audioOnlyIndicator_ = nullptr;
+    QLabel *audioInfoLabel_ = nullptr;
+    QString audioInfoTitle_;
+    QStringList audioInfoDetails_;
     QLabel *osdLabel_ = nullptr;
     QTimer *osdTimer_ = nullptr;
     bool audioOnly_ = false;

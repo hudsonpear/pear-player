@@ -528,6 +528,13 @@ QWidget *SettingsDialog::createGeneralTab()
         tr("Draws a tick where each chapter starts.\n"
             "Files without chapters are unaffected."));
     playbackLayout->addWidget(chapterMarkersCheck_);
+
+    audioTrackInfoCheck_ = new QCheckBox(tr("Show track details beside the cover art"), playbackGroup);
+    audioTrackInfoCheck_->setToolTip(
+        tr("For music files, puts the cover art in the left half of the window and\n"
+            "lists the title, artist and album next to it.\n"
+            "Off, the artwork fills the window on its own."));
+    playbackLayout->addWidget(audioTrackInfoCheck_);
     // Its own column: Playback carries six checkboxes, about as much as Seek
     // and Volume together.
     rightColumn->addWidget(playbackGroup);
@@ -932,6 +939,9 @@ void SettingsDialog::loadFromSettings()
     chapterMarkersCheck_->setChecked(
         settings.value(SettingsKeys::kShowChapterMarkers,
                         SettingsKeys::kDefaultShowChapterMarkers).toBool());
+    audioTrackInfoCheck_->setChecked(
+        settings.value(SettingsKeys::kShowAudioTrackInfo,
+                        SettingsKeys::kDefaultShowAudioTrackInfo).toBool());
     fitWindowCheck_->setChecked(
         settings.value(SettingsKeys::kFitWindowToVideo,
                         SettingsKeys::kDefaultFitWindowToVideo).toBool());
@@ -1020,6 +1030,7 @@ void SettingsDialog::saveToSettings()
     settings.setValue(SettingsKeys::kRememberPosition, rememberPositionCheck_->isChecked());
     settings.setValue(SettingsKeys::kAutoAdvance, autoAdvanceCheck_->isChecked());
     settings.setValue(SettingsKeys::kShowChapterMarkers, chapterMarkersCheck_->isChecked());
+    settings.setValue(SettingsKeys::kShowAudioTrackInfo, audioTrackInfoCheck_->isChecked());
     settings.setValue(SettingsKeys::kFitWindowToVideo, fitWindowCheck_->isChecked());
     settings.setValue(SettingsKeys::kOpenMaximized, openMaximizedCheck_->isChecked());
     settings.setValue(SettingsKeys::kRememberGeometry, rememberGeometryCheck_->isChecked());

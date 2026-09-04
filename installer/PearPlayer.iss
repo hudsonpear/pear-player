@@ -9,7 +9,7 @@
 ; version block in app.rc.
 
 #define AppName        "Pear Player"
-#define AppVersion     "1.0.0"
+#define AppVersion     "1.0.1"
 #define AppPublisher   "Hudson Pear"
 #define AppUrl         "https://github.com/hudsonpear/pear-player"
 #define AppExeName     "PearPlayer.exe"
@@ -107,9 +107,11 @@ Filename: "{app}\{#AppExeName}"; Description: "{cm:LaunchProgram,{#AppName}}"; F
 // the ProgID carrying the right icon. Kept in one place so the lists match the
 // extensions the player actually accepts.
 const
-  VideoExtensions = '.mp4/.mkv/.avi/.mov/.webm/.flv/.wmv/.m4v/.mpg/.mpeg/.m2v/.ts/.m2ts/.mts/.vob/.3gp/.3g2/.ogv';
-  AudioExtensions = '.mp3/.wav/.flac/.aac/.ogg/.opus/.m4a/.wma/.mka/.aiff/.ac3/.dts/.amr';
+  VideoExtensions = '.mp4/.mkv/.avi/.mov/.webm/.flv/.wmv/.m4v/.mpg/.mpeg/.m2v/.ts/.m2ts/.mts/.vob/.3gp/.3gpp/.3g2/.ogv';
+  AudioExtensions = '.mp3/.wav/.flac/.aac/.ogg/.opus/.m4a/.wma/.mka/.aiff/.aif/.ac3/.dts/.thd/.amr/.mid/.fla/.oga/.au';
   ImageExtensions = '.jpg/.jpeg/.png/.webp/.gif';
+  // Not media themselves: opening one plays its first entry and queues the rest.
+  PlaylistExtensions = '.m3u/.m3u8';
 
 // The ProgID for one extension: '.mp4' -> 'PearPlayer.mp4'.
 function ProgIdFor(const Extension: string): string;
@@ -125,8 +127,35 @@ end;
 // ProgID each gives Windows something specific to show ("MKV Video File"),
 // which is what the built-in handlers do.
 //
-// IconIndex points into the extra ICON resources app.rc compiles into the exe:
-//   1 = video   2 = audio   3 = image   (0 is the plain app icon)
+// IconIndex points into the ICON resources app.rc compiles into the exe:
+//   0 = plain app icon   1 = video   2 = audio   3 = image
+//   4..15 = the per-format colours, in the order app.rc lists them
+function IconIndexFor(const Extension: string; DefaultIndex: Integer): Integer;
+begin
+  // A colour per format, so a folder of mixed media can be read at a glance.
+  // Anything not named here keeps its family's plain green icon -- which is
+  // what .mp4 and .m4v want anyway.
+  if Extension = '.webm' then Result := 4
+  else if Extension = '.mkv' then Result := 5
+  else if Extension = '.avi' then Result := 6
+  else if Extension = '.wmv' then Result := 7
+  else if Extension = '.flv' then Result := 8
+  else if (Extension = '.ts') or (Extension = '.mpg') or (Extension = '.mpeg') then Result := 9
+  else if Extension = '.mp3' then Result := 10
+  else if Extension = '.m4a' then Result := 11
+  else if Extension = '.flac' then Result := 12
+  else if (Extension = '.ogg') or (Extension = '.opus') then Result := 13
+  else if (Extension = '.wav') or (Extension = '.wma') then Result := 14
+  else if (Extension = '.ac3') or (Extension = '.dts') or (Extension = '.thd') then Result := 15
+  // .aif rides along with .aiff: same format, other spelling.
+  else if (Extension = '.aiff') or (Extension = '.aif') or (Extension = '.fla')
+       or (Extension = '.mid') or (Extension = '.oga') or (Extension = '.au')
+       or (Extension = '.aac') then Result := 16
+  else if (Extension = '.3gp') or (Extension = '.3gpp') then Result := 18
+  else if Extension = '.mov' then Result := 19
+  else Result := DefaultIndex;
+end;
+
 procedure RegisterExtension(const Extension, TypeSuffix, CapKey: string; IconIndex: Integer);
 var
   ProgId, Key, Exe, TypeName: string;
@@ -138,7 +167,8 @@ begin
   TypeName := Uppercase(Copy(Extension, 2, Length(Extension) - 1)) + ' ' + TypeSuffix;
 
   RegWriteStringValue(HKA, Key, '', TypeName);
-  RegWriteStringValue(HKA, Key + '\DefaultIcon', '', Exe + ',' + IntToStr(IconIndex));
+  RegWriteStringValue(HKA, Key + '\DefaultIcon', '',
+                      Exe + ',' + IntToStr(IconIndexFor(Extension, IconIndex)));
   RegWriteStringValue(HKA, Key + '\shell\open\command', '', '"' + Exe + '" "%1"');
 
   // The Capabilities entry points the extension at that same ProgID, which is
@@ -164,6 +194,8 @@ begin
   RegisterFamily(VideoExtensions, 'Video File', CapKey, 1);
   RegisterFamily(AudioExtensions, 'Audio File', CapKey, 2);
   RegisterFamily(ImageExtensions, 'Image File', CapKey, 3);
+  // 17 is the orange list-and-play icon, the last one app.rc compiles in.
+  RegisterFamily(PlaylistExtensions, 'Playlist', CapKey, 17);
 end;
 
 // Every type the player accepts, listed under the app's own Applications key.
@@ -177,7 +209,7 @@ var
   I: Integer;
 begin
   Key := 'Software\Classes\Applications\{#AppExeName}\SupportedTypes';
-  All := VideoExtensions + '/' + AudioExtensions + '/' + ImageExtensions;
+  All := VideoExtensions + '/' + AudioExtensions + '/' + ImageExtensions + '/' + PlaylistExtensions;
   Items := StringSplitEx(All, ['/'], #0, stExcludeEmpty);
   for I := 0 to GetArrayLength(Items) - 1 do
     RegWriteStringValue(HKA, Key, Items[I], '');
@@ -214,7 +246,7 @@ var
   All: string;
   I: Integer;
 begin
-  All := VideoExtensions + '/' + AudioExtensions + '/' + ImageExtensions;
+  All := VideoExtensions + '/' + AudioExtensions + '/' + ImageExtensions + '/' + PlaylistExtensions;
   Items := StringSplitEx(All, ['/'], #0, stExcludeEmpty);
   for I := 0 to GetArrayLength(Items) - 1 do
     RegDeleteKeyIncludingSubkeys(HKA, 'Software\Classes\' + ProgIdFor(Items[I]));

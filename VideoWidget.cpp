@@ -11,6 +11,7 @@
 #include <QFont>
 
 #include <algorithm>
+#include <utility>
 
 VideoWidget::VideoWidget(QWidget *parent)
     : QOpenGLWidget(parent)
@@ -31,6 +32,16 @@ VideoWidget::VideoWidget(QWidget *parent)
     audioOnlyIndicator_->setStyleSheet(QStringLiteral("color: rgba(255, 255, 255, 160); background: transparent;"));
     audioOnlyIndicator_->setAttribute(Qt::WA_TransparentForMouseEvents);
     audioOnlyIndicator_->hide();
+
+    // The track details that sit beside the cover art. Layered the same way and
+    // for the same reason as the note above.
+    audioInfoLabel_ = new QLabel(this);
+    audioInfoLabel_->setTextFormat(Qt::RichText);
+    audioInfoLabel_->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    audioInfoLabel_->setWordWrap(true);
+    audioInfoLabel_->setStyleSheet(QStringLiteral("background: transparent;"));
+    audioInfoLabel_->setAttribute(Qt::WA_TransparentForMouseEvents);
+    audioInfoLabel_->hide();
 
     // Same layered-QLabel approach for the OSD. mpv can draw its own, but only
     // while its renderer runs -- which it does not for audio-only files, where
@@ -107,6 +118,59 @@ void VideoWidget::setAudioOnly(bool audioOnly)
     update(); // repaint immediately so a stale video frame doesn't linger behind the note
 }
 
+void VideoWidget::setAudioInfo(const QString &title, const QStringList &details)
+{
+    audioInfoTitle_ = title;
+    audioInfoDetails_ = details;
+    audioInfoLabel_->setVisible(!title.isEmpty() || !details.isEmpty());
+    layoutOverlays();
+}
+
+void VideoWidget::layoutOverlays()
+{
+    const bool showingInfo = audioInfoLabel_->isVisible();
+
+    // With the details up, mpv has been told to keep the right half of the
+    // window free, so the note -- which stands in for cover art there is none
+    // of -- is centred in the same left half the art would have filled.
+    const int artWidth = showingInfo ? width() / 2 : width();
+    audioOnlyIndicator_->setGeometry(0, 0, artWidth, height());
+
+    const int notePoints = std::clamp(std::min(artWidth, height()) / 4, 24, 200);
+    QFont noteFont = audioOnlyIndicator_->font();
+    noteFont.setPointSize(notePoints);
+    audioOnlyIndicator_->setFont(noteFont);
+
+    if (!showingInfo) {
+        return;
+    }
+
+    // Scaled to the surface rather than fixed: this widget is anything from a
+    // small window to a 4K screen, and fixed points would be lost on one and
+    // absurd on the other.
+    const int titlePx = std::clamp(height() / 14, 15, 40);
+    const int detailPx = std::clamp(height() / 26, 12, 24);
+    const int padding = std::clamp(width() / 40, 12, 48);
+
+    QString html;
+    if (!audioInfoTitle_.isEmpty()) {
+        html += QStringLiteral("<div style='font-size:%1px; font-weight:600; color:#ffffff;'>%2</div>")
+                    .arg(titlePx)
+                    .arg(audioInfoTitle_.toHtmlEscaped());
+    }
+    for (const QString &detail : std::as_const(audioInfoDetails_)) {
+        html += QStringLiteral("<div style='font-size:%1px; color:#c8c8c8; margin-top:6px;'>%2</div>")
+                    .arg(detailPx)
+                    .arg(detail.toHtmlEscaped());
+    }
+    audioInfoLabel_->setText(html);
+    audioInfoLabel_->setGeometry(artWidth + padding, 0,
+                                 std::max(width() - artWidth - 2 * padding, 1), height());
+    // Clear of the note, which covers its whole half, and under the OSD.
+    audioInfoLabel_->raise();
+    osdLabel_->raise();
+}
+
 void VideoWidget::releasePlayerRender()
 {
     if (player_ && player_->isRenderInitialized()) {
@@ -147,13 +211,7 @@ void VideoWidget::paintGL()
 void VideoWidget::resizeEvent(QResizeEvent *event)
 {
     QOpenGLWidget::resizeEvent(event);
-
-    audioOnlyIndicator_->setGeometry(rect());
-
-    const int pointSize = std::clamp(std::min(width(), height()) / 4, 24, 200);
-    QFont noteFont = audioOnlyIndicator_->font();
-    noteFont.setPointSize(pointSize);
-    audioOnlyIndicator_->setFont(noteFont);
+    layoutOverlays();
 }
 
 void VideoWidget::mousePressEvent(QMouseEvent *event)
