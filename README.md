@@ -1,12 +1,14 @@
-<img src="pearicon.png" width="96" align="left" alt="Pear Player icon">
+<p align="center">
+   <img src="pearicon.png" width="96" align="center" alt="Pear Player icon">
 
-# Pear Player
 
-A Windows video player built on Qt 6 Widgets and libmpv. Frameless custom
-title bar, per-file playback memory, and mpv's full decoding stack behind a
-small interface.
+# <p align="center">Pear Player</p>
 
-<br clear="left">
+<p align="center">
+   A Windows video player built on Qt 6 Widgets and libmpv. Frameless custom
+   title bar, per-file playback memory, and mpv's full decoding stack behind a
+   small interface.
+</p>
 
 ## Features
 
